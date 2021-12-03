@@ -1,0 +1,119 @@
+---
+title: 'R Notebook: Lesson 4, Data Structure & Variable Review'
+output:
+  html_document:
+    df_print: paged
+---
+
+All variables are objects!
+
+Good & Not-so-good names for variables / objects
+
+A name cannot start with a number. 
+
+A name cannot use some special symbols, like ^, !, $, @, +, -, /, or *
+
+```{r}
+a <- c("one", "two", "three")
+a
+
+VAULTS <- c("Tsukahara", "Yurchenko")
+VAULTS
+```
+
+
+```{r}
+1VAULTS <- c("Tsukahara", "Yurchenko")
+
+print(1VAULTS)
+```
+
+Don't forget that R is case-sensitive:
+
+```{r}
+meany <- mean(c(-1, 2, 3, 1, 0, 1, 0, -2, 3, 4))
+Meany <- "not so nice, there."
+
+meany
+Meany
+```
+
+Data structures
+
+Homogeneous: 1d, Atomic vector
+             2d, Matrix
+             nd, Array
+
+Heterogeneous: List, Data Frame
+
+In precalculus, we all received an introduction to the difference between scalars (measures of distance, or magnitude), and vectors (measures of distance / magnitude AND direction).  R has no scalars.  Vectors are so essential to R, that even its scalars are vectors of *unit length*.
+
+
+```{r}
+# Vectors
+
+i_am_a_vector <- 9
+me_too <- 1:9
+
+i_am_a_vector
+me_too
+
+me_too + i_am_a_vector
+me_too * i_am_a_vector
+
+# VAULTS is a character vector of size 2
+VAULTS
+
+```
+
+```{r}
+
+and_so_am_i <- 1:10
+and_so_am_i
+i_am_a_vector * and_so_am_i
+
+```
+
+Dress Shopping with 'next' and 'break'.
+
+```{r}
+dresses <- c("Prada", "CK", "YSL", "Gucci", "Guess")
+
+for(d in dresses) {
+  
+  print(d)
+
+  if (d == "CK") {
+    print("I don’t like CK! Please bring me the next one.")
+	  next
+  }
+  
+  if (d == "Gucci") {
+    print("Squee! I found it!")
+    break
+  }
+
+}
+
+```
+
+Lesser Used: The repeat loop
+
+```{r}
+x <- 10
+repeat {
+  print(paste(x, " bottles of beer on the wall, ", x, " bottles of beer!"))
+
+  if (x == 1){
+    print("Saving the last one for later!")
+    break
+  } else {
+    print("Take one down and pass it around...")
+  }
+  x = x-1
+}
+```
+
+
+
+

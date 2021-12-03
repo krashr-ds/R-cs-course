@@ -1,0 +1,122 @@
+---
+title: 'R Notebook: Lesson 3, Control Structures'
+output:
+  html_document:
+    df_print: paged
+---
+
+An If Statement and a For Loop
+
+```{r}
+# take input from the user 
+
+num <- as.integer(readline(prompt="Enter a number: ")) 
+
+factorial <- 1 
+
+# check is the number is negative, positive or zero 
+if(num < 0) { 
+
+   print("Sorry, factorial does not exist for negative numbers") 
+
+} else if(num == 0) { 
+
+   print("The factorial of 0 is 1") 
+
+} else { 
+
+   for(i in 1:num) { 
+
+      factorial = factorial * i 
+   } 
+   print(paste("The factorial of", num ,"is",factorial)) 
+} 
+
+```
+
+The ifelse() command
+A shorthand function, typically used with vectors
+
+```{r}
+
+# define a vector of numbers
+A = c(5, 7, 2, 22, 31, 9)
+B <- ifelse(A %% 2 == 0,"even","odd")
+#B
+```
+
+A While Loop
+
+```{r}
+# checking for an Armstrong number
+#
+# an Armstrong or Narcissistic number is a number 
+# whose value is equal to the sum of the cubes of 
+# its own digits
+# e.g. 370 = 3*3*3 + 7*7*7 + 0*0*0
+#      370 = 27 + 343 + 0 
+
+num = as.integer(readline(prompt="Enter a number: ")) 
+
+sum <- 0 
+temp = num 
+
+while(temp > 0) { 
+
+   digit = temp %% 10 
+   sum = sum + (digit ^ 3) 
+   temp = floor(temp / 10) 
+
+} 
+
+if(num == sum) { 
+
+   print(paste(num, "is an Armstrong number")) 
+
+}
+
+```
+
+Dress Shopping with 'next' and 'break'.
+
+```{r}
+dresses <- c("Prada", "CK", "YSL", "Gucci", "Guess")
+
+for(d in dresses) {
+  
+  print(d)
+
+  if (d == "CK") {
+    print("I don’t like CK! Please bring me the next one.")
+	  next
+  }
+  
+  if (d == "Gucci") {
+    print("Squee! I found it!")
+    break
+  }
+
+}
+
+```
+
+Lesser Used: The repeat loop
+
+```{r}
+x <- 10
+repeat {
+  print(paste(x, " bottles of beer on the wall, ", x, " bottles of beer!"))
+
+  if (x == 1){
+    print("Saving the last one for later!")
+    break
+  } else {
+    print("Take one down and pass it around...")
+  }
+  x = x-1
+}
+```
+
+
+
+

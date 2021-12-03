@@ -1,0 +1,109 @@
+---
+title: "R Notebook: Lesson 3, Functions"
+output: html_notebook
+---
+
+Defining a Function
+
+```{r}
+
+# A function that takes zero arguments and returns nothing
+
+foo <- function() {
+  print("This is my first function, foo.")
+}
+
+foo()
+
+# A function that takes 1 argument, and returns nothing
+
+foo <- function(x) {
+  print(paste("You passed ", x, "to my second function, foo."))
+}
+
+foo(88)
+foo("Dweezl")
+
+# A function that takes 2 arguments and returns one value
+foo <- function(x, y=0) {
+  print(paste("You passed ", x, " and ", y, " to my third function, foo."))
+  return(x*y)
+}
+
+foo(88)
+foo(11, 12)
+foo(5, 7)
+
+```
+Functions and Scope
+
+```{r}
+
+MY_SPEED_LIMIT <<- 110
+
+# GLOBAL x
+x = 15
+c = 22
+b = 90
+
+foo <- function(x) {
+  # LOCAL x, x that was passed to the function foo
+  print(paste("The value of x is ", x))
+}
+
+
+foo(b)
+foo(c)
+
+# Once foo exits, what is the value of x?
+print(paste("The value of x is ", x))
+
+```
+
+A Recursive Function
+
+A function that calls itself is called a recursive function.
+A recursive function must contain a terminating condition.
+
+Here's an example of a recursive function that terminates when the value passed to it becomes less than or equal to 1
+
+```{r}
+# Program to convert decimal number into binary number using recursive function
+convert_to_binary <- function(n) {
+  
+  print(paste("n is ", n))
+  if(n > 1) {
+    convert_to_binary(as.integer(n/2))
+  }
+  cat(n %% 2)
+}
+
+convert_to_binary(54)
+```
+```{r}
+convert_to_binary(101)
+
+```
+
+Over-riding an Infix Operator
+In R, it is possible - for example - to define your own version of +, if you surround the operator with back-ticks (above the Tab key)
+
+```{r}
+# a function that adds strings together
+`+` <- function(a,b) {
+ return(paste(a, b))
+}
+
+"Hello" + "World!"
+
+x = "The artist is..."
+y = "Claude Monet"
+x + y
+
+print("I love those haystacks by" + y)
+
+
+```
+
+
+
