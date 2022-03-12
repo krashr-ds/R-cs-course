@@ -21,4 +21,11 @@ Homer White:
 Beginning Computer Science with R
 Georgetown College  https://homerhanumat.github.io/r-notes/index.html
 
+Wickham, C., Jeon, T. & Cotton, R. (2021).  String Manipulation with stringr in R; 
+DataCamp https://app.datacamp.com/learn/courses/string-manipulation-with-stringr-in-r
+
+and 
+
+Wickham, H. & Grolemund, G. (2017) R for Data Science, O'Reilly and Associates
+<b>Freely accessible here:</b> https://r4ds.had.co.nz/index.html
 
