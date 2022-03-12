@@ -1,0 +1,543 @@
+---
+title: "R Notebook: Introduction to Strings"
+output: html_notebook
+author: Kyle Rasku
+---
+
+References:
+
+Wickham, C., Jeon, T. & Cotton, R. (2021).  String Manipulation with stringr in R; DataCamp https://app.datacamp.com/learn/courses/string-manipulation-with-stringr-in-r
+
+and 
+
+Wickham, H. & Grolemund, G. (2017) R for Data Science, O'Reilly and Associates
+<b>Freely accessible here:</b> https://r4ds.had.co.nz/index.html
+
+
+```{r}
+library(tidyverse)
+```
+
+PART 1
+Creating and Joining Strings
+Dealing with Quotes and Single Quotes within a String
+
+```{r}
+# You can begin and end with either single or double quotes
+
+String1 <- "This is a string"
+String2 <- 'Another "awesome" string!'
+
+# If you choose to use double or single quotes within a string delimited by that character, 
+# you need to use the backslash, \, to escape the internal instance of the character
+
+String3 <- "The title is \"Escape Quotes from Alcatraz\""
+String4 <- "He said, 'Nobody knows the trouble I\'ve seen!'"
+
+# Just so you know, to type an actual backslash, you need 2 backslashes
+
+String5 <- "The path to my file is C:\\Stuff\\Nerdy"
+
+# Use the 'writeLines' function to see what things will look like
+# writeLines is the stringr version of base R's paste and paste0
+
+writeLines(String1)
+writeLines(String2)
+writeLines(String3)
+writeLines(String4)
+writeLines(String5)
+```
+PART 2
+Joining Strings with Base R's paste and paste0
+
+```{r}
+# The paste function takes a series of strings and puts them together in to a single string
+# By default, the new string will separate each vector item with a space
+# By using the optional sep argument, you can specify the character that will separate the vector items
+
+paste("a", "e", "i", "o", "u", "y")
+paste("The English vowels are", " a", "e", "i", "o", "u", "and y", sep = ",")
+
+```
+
+```{r}
+# paste, paste0 and str_c: comparing behavior
+
+nyc <- c("New York", "Big Apple", "Broadway")
+la <- c("Los Angeles", "Tinseltown", "Hollywood")
+paste(nyc, la, sep = ", ")
+
+paste0(nyc, la)
+
+str_c(nyc, "=", la, collapse="; ")
+```
+
+
+```{r}
+# Combining paste commands to create more complex output
+
+teachers <- c("Dr. Moody", "Dr. Barnes", "Dr. Mittal", "Dr. Jiminez")
+courses <- c("Introduction to Anatomy", "Biochemistry", "Microbiology", "Fundamentals of Medicine")
+locations <- c("Hewitt 2431", "Ogilvy 45", "Ogilvy 58", "Hewitt 881")
+
+paste(teachers, "will be your instructor for", courses, "at", locations)
+
+# blank line
+writeLines("")
+# or assign output vectors to a variable, to create a single output with writeLines:
+schedule <- paste(teachers, "will be your instructor for", courses, "at", locations)
+writeLines(schedule)
+
+```
+```{r}
+
+action <- "go"
+
+paste("Going to a", 
+      paste(rep(action, 2), collapse = "-"), 
+      collapse = " ")
+
+nonsense_word <- "tu"
+
+paste("Put two in your", 
+      paste(rep(nonsense_word, 2), collapse = "-"), 
+      collapse = " ")
+      
+```
+
+
+PART 3
+Counting the number of code points in a string
+
+```{r}
+# Returns the number of code points in a string
+
+str_length("The quick brown fox jumps over the lazy dog.")
+
+str_length(c("String One", "String Two Fish", "Red Fish, Blue Fish"))
+
+```
+PART 4
+Combining Strings with str_c
+
+```{r}
+
+prefix <- "It was a dark and stormy "
+
+str_c(prefix, "night.")
+str_c(prefix, "boat ride.")
+str_c(prefix, "drink.")
+```
+```{r}
+# Using the sep argument to control how strings are separated
+
+str_c("123456", "11/15/2021", "Digestive Health Exam", "92.2", "Pass", "97", sep = ";")
+
+```
+
+```{r}
+# Display missing values as NA with str_replace_na
+
+record <- c(567322, "12/27/21", "Johnson, George A.", NA, "Spring 2022", "3.55")
+str_replace_na(record)
+
+```
+
+```{r}
+# Auto-vectorization with str_c
+
+students <- str_c("Student ", c("125542", "126781", "124872"), " Academic Year ", c("2020-21", "2020-21", "2021-22"))
+writeLines(students)
+
+```
+
+```{r}
+# Using an if statement with str_c
+
+name <- "Dr. Amy Pace"
+course <- "Introduction to Pediatrics"
+course2 <- TRUE
+
+str_c(
+  "Your instructor will be ", name, " for ", course, 
+  if (course2) ", and the following clinical rotation",
+  "."
+)
+```
+```{r}
+# Using str_c with collapse
+# NOTE: passing a variable name to the 'parse' command turns the name into a variable object that can 
+# then be referenced / evaluated with the 'eval' command.  This is very handy for creating concise code!
+
+name1 <- c("Jodie", "A", "Pierce")
+name2 <- c("Chantell", "B", "Richards")
+name3 <- c("Eric", "J", "Johnson")
+name4 <- c("Anna", "R", "Yurchenko")
+
+for (x in 1:4) {
+  variable <- str_c("name", x)
+  print(str_c(eval(parse(text = variable)) , collapse = " "))
+}
+
+```
+
+PART 5
+Sub-setting strings with str_sub
+
+```{r}
+# Sub-setting strings with str_sub
+
+courses <- c("FMS501", "FMS511", "LMH513")
+prefixes <- str_sub(courses, 1, 3)
+writeLines(prefixes)
+
+# negative numbers count backwards from end
+str_sub(courses, -3, -1)
+```
+
+```{r}
+# Using str_sub to perform transformation
+
+scale_values <- c("Disagree", "Neutral", "Agree")
+str_sub(scale_values, 1, 1) <- str_to_lower(str_sub(scale_values, 1, 1))
+print(scale_values)
+```
+
+PART 6
+Finding Patterns in Strings with str_starts and str_ends
+
+```{r}
+places <- c("New York City", "Jefferson City", "Charlotte Amalie", "Honolulu", "Montpelier", "Pago Pago")
+str_starts(places, "[ABCDEFGHIJ]")
+str_ends(places, "City")
+str_ends(places, "City", negate=TRUE)
+
+places[str_starts(places, "[ABCDEFGHIJ]")]
+```
+
+PART 7
+More on Pattern Matching with Strings
+
+```{r}
+# Using str_detect to find a pattern in a string or vector of strings
+string_vector <- c("alibi", "dizzy", "launch", "hazardous", "epiphany", "alliteration", "demotic", "mellifluous")
+contains_z <- str_detect(string_vector, pattern = fixed("z"))
+
+print(contains_z)
+sum(contains_z)
+string_vector[contains_z]
+```
+
+```{r}
+# str_subset allows you to subset strings based on a match
+# the match can be a fixed match (as below), a regular expression, or rebus expression
+# the regular expression below matches any character in the brackets [], exactly {2} times
+# the matched words returned below all have two consecutive vowels somewhere in the word
+# for more on using regular expressions, visit https://www.regular-expressions.info/tutorial.html
+
+str_subset(string_vector, '[aeiouy]{2}')
+
+str_subset(string_vector, '[aeiouy]{3}')
+
+```
+
+```{r}
+# Using str_count with string_vector
+
+writeLines(string_vector)
+counts <- str_count(string_vector, 'z')
+counts
+sum(counts)
+
+```
+
+
+```{r}
+# Using str_count with a pattern to create a list of counts
+
+num_as <- str_count(string_vector, pattern = fixed("a"))
+hist(num_as)
+```
+```{r}
+# Using a boolean expression to subset a string vector
+
+string_vector[num_as>1]
+```
+
+PART 8
+Splitting Strings
+
+```{r}
+# Splitting strings
+
+sentence <- "The course was taught last semester by Dr. Joe Amonsoovic.  He really was the greatest!"
+
+
+str_split(sentence, " ", simplify = TRUE)
+
+words_from_sentence <- str_split(sentence, " ", simplify = TRUE)
+instructor <- paste(words_from_sentence[1,9:10], collapse = " ")
+instructor
+
+
+# Use two-backslashes to escape the literal character, .
+# Otherwise, R assumes you mean 'regular expression dot' which matches any character
+instructor <- str_remove(instructor, "\\.")
+
+writeLines(instructor)
+```
+
+```{r}
+# Splitting strings
+
+chipmunks <- "Alvin & Simon & Theodore & Sabrina"
+
+
+str_split(chipmunks, pattern = " & ")
+str_split(chipmunks, pattern = " & ", n = 3)
+```
+
+```{r}
+# Splitting a list into a matrix using the simplify = TRUE argument
+
+names <- c("Smith, Archie", "Tuttle, Jane", "Yuskitas, Anne")
+mNames <- str_split(names, fixed(", "), simplify = TRUE)
+first_names <- mNames[,2]
+last_names <- mNames[,1]
+
+mNames
+writeLines("\n")
+first_names
+last_names
+```
+
+PART 9
+WORKING WITH POE LINES
+
+
+```{r}
+# Developing and executing a simple algorithm to find interesting words in a corpus
+
+poe_lines <- '"Seldom we find," says Solomon Don Dunce, "Half an idea in the profoundest sonnet. Through all the flimsy things we see at once As easily as through a Naples bonnet- Trash of all trash!- how can a lady don it? Yet heavier far than your Petrarchan stuff- Owl-downy nonsense that the faintest puff Twirls into trunk-paper the while you con it."'
+
+# remove punctuation (as you may have guessed, both ? and . are special to regular expressions and must be escaped!)
+poe_lines <- str_replace_all(poe_lines, '[,"\\?\\.!]', '')
+
+# obtain a lower-case vector
+words <- str_to_lower(str_split(poe_lines, " ", simplify = TRUE))
+
+# remove end-of-word dashes (a dash also has a special regex meaning, so it too is escaped; the $ anchors the dash 
+# to the end of the word, so that only dashes that appear at the end of a word will be removed.)
+words <- str_remove(words, "\\-$")
+
+# remove duplicates 
+words <- words[!duplicated(words)]
+
+# of chars per word
+word_lengths <- str_length(words)
+
+# average word-length
+avg_word_length <- mean(word_lengths)
+
+# use the vector of lengths to create a boolean indexing vector to get all the words that are longer than average
+interesting_words <- words[word_lengths>avg_word_length]
+
+interesting_words
+
+```
+PART 9
+Replacing Parts of Strings 
+
+```{r}
+# Replace one or more instances of a pattern with something else
+
+str_replace(string_vector, '[aeiouy]', '?')
+
+str_replace_all(string_vector, '[aeiouy]', '?')
+
+```
+
+
+```{r}
+# Another example, replacing & with 'and'
+
+str_replace("Tom & Jerry", pattern = " & ", replacement = " and ")
+
+str_replace_all("Alvin & Simon & Theodore", pattern = " & ", replacement = " and ")
+```
+
+PART 10
+Introducing rebus and dplyr
+
+```{r}
+
+# babynames is a data set of babynames
+# rebus is a library for pattern-matching
+# https://www.rdocumentation.org/packages/rebus/versions/0.1-3
+
+
+library("rebus")
+library("babynames")
+
+```
+
+In this section, we will introduce a little bit of dplyr, just to do some filtering of data that we will then operate on with stringr functions.  Below, dplyr is used to *filter* the babynames data by year.
+
+If you compare the R cell below with the cell following it, you will notice that there's more than one way to use dplyr.  You can make the dataframe you wish to operate on the first argument to the function as in:
+
+filter(babynames, year==2014)
+
+OR you can use the **pipe operator** to 'pipe' the data frame to the filter function, like this:
+
+babynames %>% filter(year==2014) 
+
+These look different, but they do the same thing.  And, of course, you can assign the results to a variable that you can then reference.
+
+babies_of_2014 <- filter(babynames, year==2014)
+
+OR
+
+babies_of_2014 <- babynames %>% filter(year==2014)
+
+```{r}
+babies_2014 <- filter(babynames, year==2014)
+names_2014 <- babies_2014$name
+
+# Create a list of the last two letters of every name
+last_two <- str_sub(names_2014, -2, -1)
+
+# Create a boolean vector, telling whether or not a name ends in 'ee'
+ends_in_ee <- str_detect(last_two, pattern = fixed("ee"))
+
+# Subset data frame using boolean vector as a filter
+sex <- babies_2014[ends_in_ee,]$sex
+
+# Basic table
+table(sex)
+```
+In 2014, many more commonly female names ended in 'ee' than commonly male names.
+
+
+```{r}
+# Percentage of 2014 boys names that contain "q"
+boys_2014 <- babynames %>% filter(sex=="M", year==2014) 
+boys_names <- boys_2014$name
+with_q <- str_detect(boys_names, pattern = "q" %R% ANY_CHAR)
+mean(with_q)*100
+```
+About .7% of all boys named in 2014 had a name containing the letter 'q'; that's not many!
+
+Let's see the names: 
+
+```{r}
+boys_2014[with_q,]$name
+```
+
+Those are some nifty names!
+
+
+CAPTURE AND GROUP
+
+
+```{r}
+
+# capture is good with match functions
+rx_price <- capture(digit(1, Inf) %R% DOT %R% digit(2))
+rx_quantity <- capture(digit(1, Inf))
+rx_all <- DOLLAR %R% rx_price %R% " for " %R% rx_quantity
+
+str_match("The price was $123.99 for 12.", rx_price)
+str_match_all("The price was $123.99 for 12.", rx_quantity)
+str_match_all("The price was $123.99 for 12.", rx_all)
+
+# group is mostly used with alternation.  See ?or.
+rx_spread <- group("peanut butter" %|% "jam" %|% "marmalade")
+str_match_all(
+  "You can have peanut butter, jam, or marmalade on your toast.",
+  rx_spread
+)
+
+```
+
+```{r}
+# Capturing an email address with rebus
+
+contact_list <- c("jaime1@lannister.com", "ned.stark@winterfell.org", "betrayalcentral@targerian.com")
+
+email <- capture(one_or_more(WRD)) %R% "@" %R% capture(one_or_more(WRD)) %R% DOT %R% capture(one_or_more(WRD))
+email_parts <- str_match(contact_list, email)
+
+email_parts
+writeLines("")
+email_parts[,3]
+
+```
+
+```{r}
+# Rebus backreferences
+
+narratives <- c("SKIING", "SURFING", "CLEANING", "BUILDING", "BOOGIEING", "DIVORCED")
+pattern <- capture(one_or_more(WRD)) %R% "ING"
+
+# Visualize the capture groups
+str_view(narratives, pattern)
+
+# Change the phrases using the captured words
+str_replace(narratives, pattern, str_c("CARELESSLY", REF1, sep = " "))
+
+```
+PART 11
+Formatting Numbers
+
+```{r}
+# Formatting numbers with stringr and paste
+
+# Some vectors of numbers
+percent_change  <- c(4, -1.91, 3.00, -5.002)
+income <-  c(72.19, 1030.18, 10291.93, 1189192.18)
+whole_income <- c("72", "1,030", "10,292", "1,189,192")
+p_values <- c(0.12, 0.98, 0.0000191, 0.00000000002)
+
+# Format c(0.0011, 0.011, 1) with digits = 1
+format(c(0.0011, 0.011, 1), digits = 1)
+
+# Format c(1.0011, 2.011, 1) with digits = 1
+format(c(1.0011, 2.011, 1), digits = 1)
+
+# Format percent_change to one place after the decimal point
+str_c(format(percent_change, digits=2), "%")
+
+# Format income strings with $s
+paste("$", whole_income, sep = "")
+
+# Format p_values in fixed format
+format(p_values, scientific = FALSE)
+
+# In scientific format
+format(p_values, scientific = TRUE)
+```
+
+PART 12
+Creating a simple table with format and paste
+
+```{r}
+# Define the column names
+column_names <- c("Year 0", "Year 1", "Year 2", "Project Lifetime")
+
+# Create formatted income
+income <- c(72.19, 1030.18, 10291.93, 1189192.18)
+formatted_income <- format(income, digits = 2, big.mark = ",")
+
+# Create dollar_income
+dollar_income <- paste0("$", formatted_income)
+
+# Format the column names
+formatted_names <- format(column_names, justify = "right")
+
+# Create rows
+rows <- paste(formatted_names, dollar_income, sep = "   ")
+
+# Write rows
+writeLines(rows)
+```
+
