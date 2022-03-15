@@ -1,0 +1,219 @@
+---
+title: "R Notebook: Lesson 4 Homework"
+output: html_notebook
+---
+
+Question 1: Write a Function to Sort a List of Numbers
+
+```{r}
+
+# Define a list to sort, X
+X <- c(8, 2, 1, -44, 120, 11, 6, -5)
+
+bubble_sort <- function(nums) {
+    # calculate the length of array
+    n <- length(nums)
+    # run the first loop n-1 times
+    print(paste("The first loop will be run ", n-1, " times."))
+    for (i in 1 : (n - 1)) {
+      # run the second loop (n-i) times
+      print(paste("The second loop will be run ", n-i, " times."))
+      for (j in 1 : (n - i)) {
+        # compare elements
+        if (nums[j] > nums[j + 1]) {
+          print(paste("Element ", j, " of the array ", nums[j], " is greater than element ", j+1, " of the array: ", nums[j+1]))
+          temp <- nums[j]
+          print(paste("A temp variable holds the value ", nums[j], " so the two values can be swapped."))
+          nums[j] <- nums[j + 1]
+          print(paste("First, element ", j, " gets the value of ", nums[j + 1] ))
+          nums[j + 1] <- temp
+          print(paste("Then, element ", j+1, " gets the value of the temp variable ", temp))
+        }
+      }
+      print(" ")
+    }
+  return(nums)
+}
+
+bubble_sort(X)
+
+```
+```{r}
+
+# insertion sort function to sort array
+insertion_sort <- function(nums)
+{
+    # calculate the length of array
+    l <- length(nums)
+    for (i in 2 : (l)) {
+        # store first element 
+        key = nums[i]
+        j   = i - 1
+        print(paste("The key is ", key, " and j is ", j))
+        # compare key with elements for the correct position's index
+        while (j > 0 && nums[j] > key) {
+          print(paste("Moving ", nums[j], " to location ", j+1))
+          nums[j + 1] = nums[j]
+          j = j - 1
+        }
+        # Place key at its correct position
+        nums[j + 1] = key
+    }
+    return(nums)
+}
+
+insertion_sort(X)
+
+```
+```{r}
+# function to sort array using selection sort
+selection_sort <- function(nums) {
+    # length of array
+    l <- length(nums)
+    print(paste("Iterating ", l-1, " times."))
+    for (i in 1 : (l - 1)) {
+        # start by assuming the first element is the minimum
+        print(paste("Start by assuming the element at ", i, " is the minimum."))
+        min_index <- i
+        print(paste("The interior loop starts iterating at index ", i+1))
+        for (j in (i + 1) : (l)) {
+            # check if element at j is smaller than element saved in min_index
+            print(paste("Is ", nums[j], " smaller than ", nums[min_index], "?"))
+            if (nums[j] < nums[min_index]) {
+                # if yes, update min_index
+                print(paste("Yes! Make the new min_index ", j))
+                min_index = j
+            }
+        }
+        # swap element at i with element at min_index
+        print(paste("Swapping element at ", i, " with element at ", min_index))
+        temp <- nums[i]
+        nums[i] <- nums[min_index]
+        nums[min_index] <- temp
+    }
+    return(nums)
+}
+ 
+selection_sort(X)
+```
+
+```{r}
+# another possible way to sort
+quick_sort <- function(nums) {
+   
+  # Pick a number at random
+  random_index <- sample(seq_along(nums), 1);
+  print(paste("The random index is ", random_index))
+  pivot <- nums[random_index]
+  nums <- nums[-random_index]
+  print(paste("The pivot list is ", pivot , "and the other list is ", nums))
+   
+  # Create array for left and right values.
+  left <- c()
+  right <- c()
+   
+  # Move all smaller and equal values to the
+  # left and bigger values to the right.
+  # compare element with pivot
+  left<-nums[which(nums <= pivot)]
+  right<-nums[which(nums > pivot)]
+  print(paste("Nums less than pivot go to the left ", left))
+  print(paste("Nums greater than pivot go to the right ", right))
+  
+  if (length(left) > 1) {
+    print(paste("Repeating the algorithm on ", left))
+    left <- quick_sort(left)
+  }
+  if (length(right) > 1) {
+    print(paste("Repeating the algorithm on ", right))
+    right <- quick_sort(right)
+  }
+   
+  # Return the sorted values.
+  return(c(left, pivot, right))
+}
+ 
+quick_sort(X)
+
+```
+
+
+Question 2: Compare Operations on Two Lists And-Wise OR Or-Wise
+
+```{r}
+
+R <- c(-2, 88, 6, 5, 12, 3, -16)
+S <- c(0, -22, 67, 4, 411, -3, -12)
+
+lists_compare <- function(list1, list2, do="add", what=1, comparison_type="and") {
+  
+  print(paste("The lists are ", list1, " and ", list2))
+  
+  if (do == "add") {
+    
+    print(paste("Adding ", what, " to lists."))
+    list1 <- list1 + what
+    list2 <- list2 + what
+
+  } else if (do == "subtract") {
+    
+    print(paste("Subtracting ", what, " from lists."))
+    list1 <- list1 - what
+    list2 <- list2 - what
+    
+  } else if (do == "multiply") {
+    
+    print(paste("Multiplying ", what, " with lists."))
+    list1 <- list1 * what
+    list2 <- list2 * what
+    
+  } else if (do == "divide") {
+    
+    print(paste("Dividing lists by ", what, "."))
+    if (what != 0) {
+      list1 <- list1 / what
+      list2 <- list2 / what
+    } else {
+      print("Can't divide by zero. Exiting.")
+      return(0)
+    }
+  } else {
+    print(paste("The function you have chosen ", do, " is not defined for this function. Exiting."))
+    return(0)
+  }
+  
+  print(paste("The lists are now ", list1, " and ", list2))
+  if(comparison_type=="and") {
+    return(list1&&list2)
+  } else if (comparison_type=="or") {
+    return(list1||list2)
+  } else {
+    print(paste("Comparison type ", comparison_type, " is not defined for this function. Exiting."))
+    return(0)
+  }
+}
+
+# Use the default - add 1 and compare and-wise
+lists_compare(R, S)
+
+# when comparing and-wise, if even ONE value is 0, this evaluates to FALSE
+lists_compare(R, S, "multiply", -12, "and")
+
+lists_compare(R, S, "multiply", -12, "or")
+```
+
+
+Question 3: Define a Function that Performs Fibonacci Formula on a Number
+            Then, Use a While Loop to Print Fibonacci Numbers less than 10 Million
+
+```{r}
+fibonacci <- function(n){(((1+sqrt(5))/2)^(n)-(1-((1+sqrt(5))/2))^(n))/sqrt(5)}
+
+result<-n<-0
+while(fibonacci(n)<10000000){
+  result<-c(result,fibonacci(n));
+  n<-n+1
+}
+result[-1]
+```
+

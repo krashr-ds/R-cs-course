@@ -1,0 +1,57 @@
+---
+title: "R Notebook - Lesson 6 Homework Template"
+output: html_notebook
+---
+
+Lesson 6 Homework:
+
+Part I: CSV to Excel
+Part II: Wrangling the language_diversity data set
+
+NOTE: To install the "untidydata" package and obtain the language_diversity data set, type the following into your R console: devtools::install_github("jvcasillas/untidydata")
+
+```{r}
+library(tidyverse)
+library(xlsx)
+library(untidydata)
+```
+
+Part I: CSV to Excel
+Read in the P2-movie-ratings.csv file
+Look at how the data types were parsed either before or after you read the file into a tibble
+Revise the file data types as follows:
+     - Film, chr
+     - Genre, factor / category
+     - Ratings %s, Budget and Year of Release, int
+
+Call the summary function on the int columns
+Determine the 75th percentile for the Audience Rating %, and create a new column, `Highly Rated`, which is 1 when Audience Rating % is > 75th percentile, and 0 when it isn't.
+Create a summary by Genre showing the Average Ratings and the number of Highly Rated films in each category
+Arrange the summary data into a pleasing format and rename the colnames so they are easy to understand
+Convert the revised tibble and summary to data frames
+Write the data frames to an Excel document, 'P2-movie-ratings.xlsx' as Sheet 1 and Sheet 2
+
+
+```{r}
+movies <- read_csv("P2-movie-ratings.csv", col_names=TRUE)
+
+spec(movies)
+```
+
+Part II: Wrangling the language_diversity data set
+
+Install the ‘untidydata’ library using the following command: devtools::install_github("jvcasillas/untidydata")
+Tidy the language_diversity data set by spreading the data in the Measurement and Value columns into the following columns: Languages, Area, Population, Stations, MGS, and Std
+Create a new tibble by Selecting columns except MGS and Std
+Cast the Continent column as a factor
+Filter the tibble to only Asian countries
+Mutate to create a new column, `Language Rate` that contains languages per area
+Group the data by country and arrange it by Area
+Summarize each country by min, mean and max of `Language Rate` to see which countries in Asia have the most languages per area
+Write the new summarized data set to a .csv file using write_csv (the readr function that works with tibbles)
+
+
+```{r}
+language_diversity
+```
+

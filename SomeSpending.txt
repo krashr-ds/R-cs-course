@@ -1,0 +1,16 @@
+date	amount	item	desc	cat
+1/1/2018	480.2	456	used skis and bindings	fun
+1/18/2018	12.8	458	coffee and muffin	food
+2/9/2018	67.56	490	lunch at Bretton Woods lodge	food
+2/9/2018	98.43	491	ski ticket	fun
+3/5/2018	58.9	562	discounted ski ticket	fun
+3/6/2018	146.87	563	Vermont lodging	lodging
+6/11/2018	32.99	1326	bikini	clothing
+7/7/2018	1245.8	1381	kayak	fun
+9/21/2018	432	1488	wine tasting	fun
+9/22/2018	876.59	1489	pre-wedding brunch	food
+10/11/2018	988.76	1499	mountain biking weekend	fun
+10/12/2018	40	1500	beer	food
+11/23/2018	950	1523	plane ticket	travel
+11/25/2018	27	1525	breakfast with Jay	food
+12/8/2018	566.24	1580	holiday shopping	holiday

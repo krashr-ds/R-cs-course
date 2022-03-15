@@ -1,0 +1,442 @@
+---
+title: "R Notebook: Manipulating Data with dplyr"
+output: html_notebook
+---
+
+Reference: Wickham, H. & Grolemund, G. (2017). R for Data Science.  O'Reilly and Associates; Sebastopol, CA.
+
+Page #s referred to below are from the print version of this text.
+
+The entire book in available for free online at https://r4ds.had.co.nz/index.html
+
+```{r}
+library(tidyverse)
+```
+
+What is 'tidy' data?
+
+- Each variable should have its own column
+- Each observation should have its own row
+- Each value should have its own cell
+
+In the tidyverse, data like this is easier to work with.  This is different from the data shape most preferred by, for example, Power BI.  
+
+Why do this? R works natively on *vectors* of information.  Placing variables in columns allows R's ability to operate on vectors to shine. (Wickham & Grolemund, p. 150)
+
+HOW TO MAKE DATA TIDY: Spread, Gather Separate and Unite
+
+To illustrate these functions, I am using built-in data tables supplied by the tidyverse package
+
+```{r}
+table4a
+```
+
+If we want this data to be tidy, we want the years to be in their own column. 
+
+This is called 'gathering', and it takes 3 parameters: the columns that represent values, instead of variables, the name of the variable whose values form the column names, and the name of the variable whose values are spread over the cells.
+
+```{r}
+# Calling gather() to tidy table4a
+# Notice that because columns `1999` and `2000` cannot be R variable names, 
+# their names must be surrounded with backticks when we refer to them.
+tidy_4a <- table4a %>% 
+              gather(`1999`, `2000`, key = "year", value = "cases")
+
+print(tidy_4a)
+```
+
+Let's do the same on table4b, which has population data
+
+```{r}
+tidy_4b <- 
+  table4b %>%
+    gather(`1999`, `2000`, key = "year", value = "population")
+
+print(tidy_4b)
+```
+
+Spreading data
+
+The opposite of gathering; used when an observation is scatter across multiple rows
+
+```{r}
+table2
+
+```
+
+Here, we have repeating rows for years, cases and population.  
+If the data were tidy, cases would be in one column, and population would be in another.
+
+```{r}
+table2 %>%
+  spread(key = type, value = count)
+
+```
+
+Exercise 4, p. 156 (Wickham & Grolemund, 2017)
+
+What should we do with this little data set to make it tidy? 
+
+```{r}
+preg <- tribble(
+  ~pregnant, ~male, ~female,
+  "yes", NA, 10,
+  "no", 20, 12
+)
+
+preg
+```
+
+```{r}
+# My take:
+tidy_preg <- preg %>%
+              gather(male, female, key = "sex", value = "count") %>%
+              spread(key = "pregnant", value = "count") 
+
+colnames(tidy_preg) <- c("sex", "not_pregnant", "pregnant")
+
+# Rearrange column order, so pregnant is first
+tidy_preg <- tidy_preg %>%
+                relocate(pregnant, .after = sex)
+tidy_preg
+```
+
+How did you approach this problem differently? There is no official "right" answer.
+
+
+Separating and Pulling
+
+Sometimes data is squished together into one column when it should really be in more than one.
+We can separate it with the separate() function.
+
+Other times, we prefer to bring together data that is separated into individual columns.
+This is done using unite().
+
+```{r}
+
+table3
+
+```
+
+```{r}
+# Separating rate into cases and population
+# Then, using mutate() to calculate the rates! 
+# Here, we must use convert=TRUE, so that 'cases' and 'population' will be converted to numbers!
+# If we don't, the mutate line will cause an error, trying to operate on strings
+
+tidy_table3 <- table3 %>% 
+                  separate(rate, into = c("cases", "population"), convert = TRUE) %>%
+                  mutate(rate = cases/population)
+
+tidy_table3
+```
+
+By default, separate() splits when it sees a non-alpha numeric character, but we could also specify the character to split on, with separate(rate, into = c("cases", "population"), sep="/")
+
+```{r}
+# Using sep = index position to divide a column in two
+# This will split the year in between the 2nd and 3rd digits
+
+less_tidy3 <- tidy_table3 %>%
+                separate(year, into = c("century", "year"), sep = 2)
+
+less_tidy3
+
+```
+
+Now, let's use unite() to put them back together;
+Default value for sep is _.
+NOTE: If you wanted to keep both the input columns and the new column, set remove argument to FALSE.
+
+```{r}
+reunited_table3 <- less_tidy3 %>%
+                      unite("year", century, year, sep = "")
+
+reunited_table3
+```
+
+Filling in missing data
+
+There are a lot of more complex ways to fill missing data - enough to fill an entire lecture and then some!  Here are just a couple of little functions tidyr has to allow for basic data completion.
+
+p. 161
+
+```{r}
+stocks <- tibble(
+  year = c(2015, 2015, 2015, 2015, 2016, 2016, 2016),
+  qtr = c(1, 2, 3, 4, 2, 3, 4),
+  return = c(1.88, 0.59, 0.35, NA, 0.92, 0.17, 2.66)
+)
+
+stocks
+```
+
+```{r}
+# Turn explicit missing values implicit (automatically drops the row containing the NA)
+
+stocks %>% 
+  spread(year, return) %>%
+  gather(year, return, `2015`, `2016`, na.rm = TRUE)
+
+```
+
+```{r}
+# Make missing values explicit with complete()
+
+stocks%>%
+  complete(year, qtr)
+
+```
+
+complete() finds all the unique combinations, and since 2016, qtr 1 is missing, it fills in an NA.
+
+Filling NA values with fill()
+This just caries the last filled value forward.  Not appropriate for most imputation tasks, 
+but sometimes appropriate for particular kinds of data. p.163
+
+```{r}
+treatment <- tribble(
+  ~person, ~treatment, ~response, 
+  "Derrick Whitmore", 1, 7, 
+  NA, 2, 10,
+  NA, 3, 9, 
+  "Katherine Burke", 1, 4
+)
+
+treatment %>%
+    fill(person)
+
+```
+
+Joins
+
+Just like in SQL, you can join tables together in the tidyverse, using dplyr.
+There are three types of joins in dplyr:
+
+- Mutating joins: add new variables to one data frame from matching observations in another
+- Filtering joins: filter observations from one data frame based on whether or not they appear in the other
+- Set operations: treat observations as if they were elements in a set
+
+The nycflights13 data set contains 4 tables: 
+
+- airlines (lets you look up full carrier names based on abbreviated codes)
+- airports (gives faa codes, names, lat and long of airports)
+- planes (gives year and type information for each plane by tailnum)
+- weather (weather at each airport for each hour in 2013)
+- flights (gives month, day, hour flight, origin, destination, tailnum and carrier for all 2013 flights)
+
+```{r}
+library(nycflights13)
+
+# flights can join to planes on tailnum
+# flights can join to airlines on carrier
+# flights can join to airports on origin or dest(ination)
+# flights can join to weather on origin and year, month, day and hour
+
+# Abbbreviating the flights table
+flights_sm <- flights %>%
+                select(year:day, hour, origin, dest, tailnum, carrier)
+
+# Adding the full airline name to flights data with left_join()
+flights_sm %>%
+  select(-origin, -dest) %>%
+  left_join(airlines, by = "carrier")
+```
+
+JOIN RULES REVIEW
+
+When joining table X to table Y:
+
+AN INNER JOIN keeps only the rows X and Y have IN COMMON
+A LEFT JOIN keeps all of the rows in X, and adds only the data in Y where rows in Y have commonality with X
+A RIGHT JOIN keeps all of the rows in Y, and adds only the data in X where rows in X have commonality with Y
+A FULL JOIN keeps all the rows in BOTH X and Y, and fills in the value NULL or NA where a row from X has no match in Y, or a row from Y has no match in X
+
+```{r}
+# looks for in-common columns to join on ("natural join")
+flights_sm %>%
+  left_join(weather)
+```
+
+```{r}
+# Usually, it isn't a great idea to use the 'natural join' - for instance, flights_sm and planes
+# both have year columns, but in this case they mean very different things! It is usually best 
+# to use the by argument to specify the join column
+
+flights_sm %>%
+  left_join(planes, by = "tailnum")
+```
+
+Note that year.x in the joined table refers to flights_sm$year, and year.y to planes$year
+This can be disambiguated after the join by re-assigning colnames for the new tibble or data.frame
+
+```{r}
+# by can also be used to specify columns that don't have the same name but should be joined
+# the join below gets destination airport information
+flights_sm %>%
+  left_join(airports, by = c("dest" = "faa"))
+```
+
+Filtering joins exclude some rows
+
+semi_join(x, y) keeps all observations in x that have a match in y
+anti_join(x, y) drops all observations in x that have a match in y
+
+```{r}
+# Filtering joins
+
+top_dests <- flights %>%
+                count(dest, sort = TRUE) %>%
+                head(10)
+
+# Flights that went to the top_dests
+flights %>%
+  semi_join(top_dests)
+
+```
+
+```{r}
+# Using anti_join to identify missing data or unused inventory
+
+# Flights with NO MATCH in planes
+flights %>%
+  anti_join(planes, by = "tailnum") %>%
+  count(tailnum, sort = TRUE)
+```
+
+Set Operations (infrequently used) p. 193
+
+intersect(x, y) - return only rows in both x and y
+union(x, y) - return unique rows in x and y
+setdiff(x, y) - return rows in x not in y
+These expect the x and y inputs to have the same variables
+
+
+
+Core dplyr
+
+There are five core dplyr functions that every R user must know: 
+
+filter() - pick observations from the data set
+arrange() - reorder the rows
+select() - pick variables by their names
+mutate() - create new variables with functions of existing variables
+summarize() - collapse many values down to a summary / aggregate
+
+We've touched on a few of them already!  Now, we'll put them all together in one exercise.
+
+Since many are already familiar with it, we'll use the Titanic data set for this activity!
+
+```{r}
+library(titanic)
+
+titanic_ds <- titanic::titanic_train
+titanic_ds
+```
+
+First, let's use what we've already learned to do some feature development on the Name and Cabin fields.
+
+Let's separate() the Name field into Last Name, First Name(s), and Title; let's also create a Name Length feature, since it seems likely that the length of people's names might have some correlation with their survival-rate.
+
+Then, we can separate the Cabin field by index, since the first character is the Deck and the rest is the Cabin #.
+
+ 
+```{r}
+titanic_ds <- titanic_ds %>%
+                mutate("Name Length"=str_length(Name))
+
+titanic_ds <- titanic_ds %>%
+                separate(Name, c("Last Name", "FN"), sep = ",") 
+
+titanic_ds <- titanic_ds %>%
+                separate(FN, c("Title", "First Name"), sep = "\\.")
+
+titanic_ds
+```
+
+```{r}
+titanic_ds <- titanic_ds %>%
+  separate(Cabin, c("Deck", "Cabin No."), sep = 1, convert = TRUE)
+
+titanic_ds
+```
+
+Selecting Data
+
+There's a reason we haven't used this one yet - it is really pretty basic.  Just enumerate the fields you wish to select, and get a subset of the tibble / data frame.  You can use select() along with filter() if you want to filter the data frame, and then chose only certain fields.  Select is most useful when you have a very large data frame with many columns / variables.
+
+```{r}
+# select()
+
+# Selecting Numeric Variables
+titanic_num <- titanic_ds %>% select(Survived, Pclass, Age, SibSp, Parch, Fare, `Name Length`)
+
+# Getting Basic Stats
+titanic_num %>% summary()
+```
+
+Filtering data
+We've used filter() before!  We even used it in the last lesson to filter the babynames data (remember?):
+
+boys_2014 <- babynames %>% filter(sex=="M", year==2014) 
+```{r}
+# Let's look at a table of pClass x Survived:
+
+table(titanic_ds$Pclass, titanic_ds$Survived)
+```
+No surprises here; people in first class were much more likely to survive.
+
+We can see from the summary() we did on the numeric data that the 75th percentile for Name Length is about 30 characters; let's filter the data to exclude those with Name Lengths < 31, and run the table again.
+
+```{r}
+titanic_ds <- 
+  titanic_ds %>%
+    mutate("Long Name"=ifelse(`Name Length`<31, 0, 1))
+
+long_names <- titanic_ds %>%
+                filter(`Long Name`==1)
+
+table(long_names$Pclass, long_names$Survived)
+
+```
+When it comes to the 1st and second-class passengers, it looks like more people with long names survived.
+
+```{r}
+long_names
+
+```
+
+Predictably, focusing in on the long names eliminated 75% of the rows.
+
+Arranging data
+The arrange() function is similar to filter() except instead of selecting rows, it changes their order (sorts them).
+
+Let's put all the first class people at the bottom of the list.
+
+```{r}
+arrange(titanic_ds, desc(Pclass))
+
+
+```
+
+Finally, we'll use summarize to do some aggregation on the data set, similar to how we did it earlier in the lesson.
+
+```{r}
+titanic_ds %>%
+  group_by(Pclass) %>%
+  summarise(min(`Name Length`), mean(`Name Length`), max(`Name Length`))
+
+```
+
+```{r}
+
+titanic_ds$Deck <- as.factor(titanic_ds$Deck)
+titanic_ds %>%
+  group_by(Pclass) %>%
+  summarise(n_distinct(Deck))
+```
+
+There are 1st class accommodations on 7 decks, but 2nd and 3rd class on only 4.
+
+
+

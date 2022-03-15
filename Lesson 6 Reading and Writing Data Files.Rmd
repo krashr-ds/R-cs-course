@@ -1,0 +1,257 @@
+---
+title: "R Notebook: Reading and Writing Data Files"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(xlsx)
+```
+ 
+Load a small spending file three ways
+
+```{r}
+# Read in a csv file, store the data frame in the variable "spending"
+# col_names argument is TRUE if the first row of the file contains column headers / names
+# TRUE is the default value, but I am showing it here for instructional purposes
+# Quote is the character used to quote text fields, this can be handy if you have large 
+# text fields that might contain formatting (carriage returns, form feeds or line breaks) 
+# or non-standard characters for your locale.I used the backtick (`), but the tilde (~) 
+# is another good option.
+
+spending <- read_csv("SomeSpending.csv", col_names=TRUE, quote = "`")
+
+# Call spec() to see how the parser guessed field types:
+spec(spending)
+```
+The call to spec() is telling us that the parser detected that the file is comma-delimited, which is correct!
+
+However, the parser thought our 'date' field was a character field, and 'item' should be an double, rather than an integer.  The other fields are typed correctly, although the 'cat' field contains a string that should be treated as a category or factor.
+
+Let's make a few changes to the code so that the file is read and parsed correctly:
+
+```{r}
+spending <- read_csv(
+  "SomeSpending.csv", 
+  col_types = list(
+    date = col_date(format = "%m/%d/%Y"),
+    amount = col_double(),
+    item = col_integer(),
+    desc = col_character(),
+    cat = col_factor()
+  )
+)
+
+spec(spending)
+```
+```{r}
+spending
+```
+
+This imaginary person's life is a LOT more fun (and a lot more expensive) than mine! :)
+
+We don't have to load a file to look at its spec().  This is really handy when we want to see how readr will parse a file before we load it!  That way, we can make the formatting changes in the first readr call.
+
+```{r}
+# Call spec() before loading the file (same file, in tab-delimited text format):
+spec_tsv("SomeSpending.txt", col_names = TRUE)
+
+# Load the file with the correct data types:
+spending_txt <- read_tsv(
+  "SomeSpending.txt", 
+  col_types = list(
+    date = col_date(format = "%m/%d/%Y"),
+    amount = col_double(),
+    item = col_integer(),
+    desc = col_character(),
+    cat = col_factor()
+  )
+)
+
+# Show the first five rows of the tibble data frame
+head(spending_txt, 5)
+```
+
+```{r}
+# Loading an Excel version of the file
+# The basic version, using sheetIndex to specify the sheet:
+excel_spending <- read.xlsx("SomeSpending.xlsx", sheetIndex = 1)
+
+# The xlsx library DOES NOT create a tibble (special tidyverse data.frame)
+# Instead, it creates an old-fashioned R data.frame object
+# To see its structure and data types, we use the str() command
+str(excel_spending)
+```
+
+The read.xlsx function parsed the date correctly!  It isn't as fancy as tibble wrt numeric fields, and doesn't differentiate between integers and floats.  It interpreted both 'desc' and 'cat' as strings.
+
+To cast cat as a factor, we can reassign the value using as.factor:
+
+```{r}
+# Convert the 'cat' column to a categorical variable:
+
+excel_spending$cat <- as.factor(excel_spending$cat)
+str(excel_spending)
+```
+
+Now all our data types are accurate!
+
+```{r}
+# A few other useful things to know about reading Excel files:
+
+# Read in only the first three columns:
+excel_spending_subset <- read.xlsx("SomeSpending.xlsx", sheetIndex = 1, colIndex = 1:3)
+head(excel_spending_subset, 3)
+
+# Specify the starting row (handy for skipping some rows, OR 
+# for opening files that have big headers or extra formatting
+# or graphics). If skipping some rows, you need to specify
+# column names, or the last column you skipped will turn into
+# a header.
+excel_spending_subset2 <- read.xlsx("SomeSpending.xlsx", 
+                                    sheetIndex = 1, 
+                                    startRow = 3,
+                                    header = FALSE)
+# assign column names
+colnames(excel_spending_subset2) <- c("date", "amount", "item", "desc", "cat")
+# don't forget our categorical variable...
+excel_spending_subset2$cat <- as.factor(excel_spending_subset2$cat)
+head(excel_spending_subset2, 3)
+
+```
+
+
+Let's make changes to our tibbles so we can write them to new files!
+
+Go here for a detailed explanation of tibble vs. data.frame: 
+https://www.r-bloggers.com/2020/05/create-and-convert-tibbles/
+
+NOTE: when they say 'the tibbles package needs to be loaded' - you've taken care of that by loading library(tidyverse)!
+
+```{r}
+# Spending tibble
+print(spending)
+
+# Using dplyr's mutate function to create a new column called "expensive" based on the value of "amount"
+# REMEMBER, you can either pass the spending tibble as an argument, OR use the pipe operator %>%
+# NOTE, if you have more than two options for a new variable, you can use case_when rather than ifelse
+# https://www.statology.org/conditional-mutating-r/
+
+spending <- spending %>%
+              mutate(expensive = ifelse(amount > 300, 1, 0))
+
+# Spending tibble with new column, 'expensive'
+print(spending)
+
+```
+
+Now, we can also use dplyr to easily summarize the most expensive categories!
+
+First, we pass the tibble to the 'group_by' function, to arrange it by category, then we summarize the amount and expensive columns to get the total amounts and # of expensive purchases by category.
+
+This small snippet of code is an introduction to dplyr's power.
+
+```{r}
+cat_spending_summary <- spending %>%
+                          group_by(cat) %>%
+                          summarise(sum(amount), sum(expensive))
+
+colnames(cat_spending_summary) <- c("cat", "total_spending", "num_expensive")
+print(cat_spending_summary)
+
+```
+
+Our friend sure knows how to party, but might be spending a little too much on fun.
+Still, what about annual or one-time purchases?  
+Those aren't as repetitive, so a few of them isn't the worst.
+
+Let's add another column for those.
+
+This time, we'll have to scrutinize each entry to decide whether or not the label applies:
+
+```{r}
+print(spending)
+
+# Using old-fashioned assignment to create a new column (also works on data.frames)
+spending$occasional <- c(1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1)
+
+print(spending)
+```
+
+Both of our new columns are typed 'double'; let's save space by converting them to logical.
+
+```{r}
+spending$expensive <- as.logical(spending$expensive)
+spending$occasional <- as.logical(spending$occasional)
+
+# And, re-summarize:
+cat_spending_summary <- spending %>%
+                          group_by(cat) %>%
+                          summarise(sum(amount), sum(expensive), sum(occasional))
+
+colnames(cat_spending_summary) <- c("cat", "total_spending", "num_expensive", "num_occasional")
+print(cat_spending_summary)
+
+```
+
+So even though our friend spent a lot on fun, 75% of those purchases were infrequent.
+
+```{r}
+# Summarizing using some functions from last week's lesson :)
+
+writeLines(
+  paste("Grand total recorded spending in 2018 file:", 
+        paste0('$', 
+               format(
+                 sum(cat_spending_summary$total_spending), 
+                 big.mark = ","))))
+
+```
+
+Ok, let's write our new tibbles to a csv file, and an excel file
+
+```{r}
+# Writing 'spending' to a csv file
+
+write_csv(spending, "SomeSpending2.csv")
+
+# And read it back...
+
+quickread <- read_csv("SomeSpending2.csv")
+quickread
+
+```
+
+Once again, reading in the file, readr didn't know our categorical variable was categorical, or that the 'item' variable was an integer, instead of a double. But everything else looks good.
+
+```{r}
+# Writing 'spending' to an Excel file, and 'cat_spending_summary' to the second sheet
+
+# Creating data.frame versions of our tibbles:
+
+spending_df <- as.data.frame(spending)
+cat_spending_summary_df <- as.data.frame(cat_spending_summary)
+
+write.xlsx(spending_df, 
+           file = "SomeSpending2.xlsx",
+           sheetName = "All Data", 
+           row.names = FALSE, # don't save the row names, they're just numbers
+           append = FALSE)
+
+# Add a second data set (now, append must be = TRUE)
+write.xlsx(cat_spending_summary_df, 
+           file = "SomeSpending2.xlsx",
+           sheetName = "By Category", 
+           row.names = FALSE,
+           append = TRUE)
+
+```
+
+Open the file in Excel, and check it out!
+
+Also, the xlsx R library has a lot of functionality that allows for creation of nifty things in Excel documents using code! If you want to learn how to add lots more formatting and functionality, 
+**including plots** to your R-generated Excel spreadsheets, check out the following tutorial:
+https://www.learnbyexample.org/read-and-write-excel-files-in-r/#the-xlsx-package
+
+xlsx Docs: https://www.rdocumentation.org/packages/xlsx/versions/0.6.5
+
