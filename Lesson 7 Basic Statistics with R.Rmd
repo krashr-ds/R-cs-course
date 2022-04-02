@@ -1,0 +1,596 @@
+---
+title: "R Notebook: Performing Basic Statistics with R"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+
+head(diamonds)
+```
+ 
+
+
+```{r}
+summary(diamonds)
+
+```
+
+Looking at Correlations!
+
+
+```{r}
+# install.packages("PerformanceAnalytics")
+library(PerformanceAnalytics)
+
+numeric_diamonds <- subset(diamonds, select = -c(cut, color, clarity))
+
+chart.Correlation(numeric_diamonds, histogram = TRUE, method = "pearson")
+
+
+```
+
+
+
+More descriptive tools - 'skimming' your data set with skimr
+
+```{r}
+# install.packages("skimr")
+library(skimr)
+skimmed <- skim(diamonds)
+skimmed
+```
+
+
+
+```{r}
+
+diamonds %>%
+  group_by(cut) %>%
+  summarise(min(price), median(price), mean(price), max(price))
+```
+
+Testing for Normality
+
+Look at the histogram of the data first.  This is the best way to get a basic idea of your data's distribution.
+
+```{r}
+library(palmerpenguins)
+
+male_penguins <- palmerpenguins::penguins %>% filter(sex=="male", species!="Gentoo")
+hist(male_penguins$bill_depth_mm)
+hist(diamonds$price)
+
+```
+
+Lots of cost and price data is not normally distributed.  This data tends to cluster around 0, or be 'zero inflated'.  Count data tends to follow a distribution called the 'Poisson' distribution, where there are many instances where a count of 1 or 2 is recorded, but as the count values increase the number of instances that reach these values decrease at a rate defined by the parameter lambda.
+
+Looks like the penguin bill_depth_mm data *may* be close to normally distributed, so let's test it out!
+
+First, we can look at a QQ plot to see if the data lie along the quantile line.
+Function below reference: https://scientificallysound.org/2018/06/07/test-normal-distribution-r/
+
+```{r}
+
+qqplot.data <- function (vec) # argument: vector of numbers
+{
+  y <- quantile(vec[!is.na(vec)], c(0.25, 0.75))
+  x <- qnorm(c(0.25, 0.75))
+  slope <- diff(y)/diff(x)
+  int <- y[1L] - slope * x[1L]
+  d <- data.frame(resids = vec)
+  ggplot(d, aes(sample = resids)) + stat_qq() + geom_abline(slope = slope, intercept = int)
+  
+}
+
+qqplot.data(male_penguins$bill_depth_mm)
+
+
+```
+
+This looks pretty good!  There are a few data points at the "tails" that veer away from the line.  Let's run a popular test of normality that's appropriate for discrete, bounded data:
+
+
+
+```{r}
+# install.packages("nortest")
+library(nortest)
+ad.test(male_penguins$bill_depth_mm)
+
+
+```
+
+The p-value is 0.08, which is greater than 0.05; so, we can be 95% confident that the male penguin bill depth is normally distributed!
+
+
+Power Calculation
+How much data do we need to be able to detect an effect of the size we are interested in?
+
+Let's look at a t-testing example using the male_penguins bill_depth_mm data!
+
+Note: Please see Erin for a more in-depth discussion on effects size; for the purposes of this example, I am going to assume values of 0.2, 0.5, and 0.8 represent small, medium, and large effect sizes respectively (Cohen, 1988 - https://www.amazon.com/Statistical-Power-Analysis-Behavioral-Sciences/dp/0805802835)
+
+```{r}
+# POWER CALCULATIONS USING TWO GROUPS OF MALE PENGUINS WE WANT TO COMPARE
+
+library(pwr)
+
+# n = 73
+adelie <- male_penguins %>% filter(species=="Adelie")
+n_adelie <- adelie %>% summarise(n())
+n_adelie <- as.integer(n_adelie)
+print(n_adelie)
+
+# n = 34
+chinstrap <- male_penguins %>% filter(species=="Chinstrap") 
+n_chinstrap <- chinstrap %>% summarise(n())
+n_chinstrap <- as.integer(n_chinstrap)
+print(n_chinstrap)
+
+# Since we are comparing two samples with different-sizes, we must use the pwr.t2n.test function
+
+# Small effect size - 0.2, sig. level / alpha = 0.05
+pwr.t2n.test(n1=n_adelie, n2=n_chinstrap, d =0.2, sig.level=0.05)
+
+# Medium effect size = 0.5
+pwr.t2n.test(n1=n_adelie, n2=n_chinstrap, d =0.5, sig.level=0.05)
+
+# Large effect size = 0.8
+pwr.t2n.test(n1=n_adelie, n2=n_chinstrap, d =0.8, sig.level=0.05)
+
+```
+
+The probability of detecting an effect of small (0.2) size with 95% confidence, when the first sample has 73 rows, and the second has 34, is about 16%.
+The probability of detecting an effect of medium (0.5) size with 95% confidence, when the first sample has 73 rows and the second has 34, is 66.5%.
+And the probability of detecting an effect of large (0.8) size with 95% confidence, when the first sample has 73 rows and the second has 34, is 97%.
+So the probability of detecting a large effect size between the two penguin groups is excellent, but the probability of detecting a small one?  Not so good.
+
+What if we wanted to be able to detect a small effect (0.2) with 80% power? 
+Let's say we decided to collect data on 147 more Adelie penguins, bringing n1 to 220.
+How many more Chinstrap penguins would we need to collect data on to achieve our detection goal?
+
+```{r}
+cohen.ES(test="t", size="small")
+
+pwr.t2n.test(d=0.2, n1=220, n2=NULL, power=0.8, sig.level = 0.05)
+
+
+```
+
+There would be even more Chinstrap penguin measuring we'd have to do!!
+
+Note that power calculation is specific to the test you are planning to use. See the pwr package documentation or the following vignette for more information: https://cran.r-project.org/web/packages/pwr/vignettes/pwr-vignette.html
+
+Now let's try some t-testing on the two species of male penguins in our male_penguins data set!
+
+```{r}
+structure(male_penguins)
+```
+
+There are a few continuous variables that are normally or close to normally distributed: bill_length_mm, bill_depth_mm, flipper_length_mm and body_mass_g.
+
+So, let's run some code that will give us boxplots and t-tests for all four of these variables, comparing the Adelie penguins in our data set with the Chinstrap penguins.
+
+(Remember - based on our power calculation we're only truly likely to detect a large difference due to the small sample size.)
+
+```{r}
+
+# To compare the male penguins on their continuous values, 
+# we need to remove the 'island' data point:
+penguin_comparison <- subset(male_penguins, select = -island) 
+# Remove 'Gentoo' factor (not using)
+penguin_comparison$species <- droplevels(penguin_comparison$species)   
+
+# boxplots then t-tests for the 4 variables at once!
+
+for (i in 2:5) {
+    boxplot(unlist(penguin_comparison[, i]) ~ penguin_comparison$species, # draw boxplots by species
+    ylab = names(penguin_comparison)[i], # rename y-axis with variable names
+    xlab = "Species"
+  )
+}
+for (i in 2:5) { 
+  # perform t-test
+  print(t.test(unlist(penguin_comparison[, i]) ~ penguin_comparison$species)) 
+}
+
+
+```
+
+The results of the t-tests are hinted at by the boxplots!  Only bill length and flipper length are significantly different between the two species:
+
+Bill Length T-Test Result:
+t = -28.303, df = 90.059, p-value < 2.2e-16
+95 percent confidence interval:
+ -11.455039  -9.952374
+sample estimates:
+   mean in group Adelie mean in group Chinstrap 
+               40.39041                51.09412 
+               
+Flipper Length Result:
+
+t = -5.8444, df = 70.675, p-value = 1.435e-07
+95 percent confidence interval:
+ -10.060067  -4.941544
+sample estimates:
+   mean in group Adelie mean in group Chinstrap 
+               192.4110                199.9118
+               
+
+Now, let's repeat this process using ANOVA, so we can compare the variables across all *three* penguin species!
+
+This code adapted from some slick code written by Antoine Soetewey:
+https://statsandr.com/blog/how-to-do-a-t-test-or-anova-for-many-variables-at-once-in-r-and-communicate-the-results-in-a-better-way/
+
+```{r}
+library(ggpubr)
+three_species_comparison <- penguins %>% filter(sex=="male")
+
+x <- which(names(three_species_comparison) == "species") 
+y <- which(names(three_species_comparison) == "bill_length_mm" 
+| names(three_species_comparison) == "bill_depth_mm"
+| names(three_species_comparison) == "flipper_length_mm"
+| names(three_species_comparison) == "body_mass_g")
+method1 <- "anova" 
+method2 <- "t.test"
+comparisons <- list(c("Adelie", "Chinstrap"), c("Adelie", "Gentoo"), c("Chinstrap", "Gentoo")) # comparisons for post-hoc tests
+
+for (i in y) {
+  for (j in x) {
+    p <- ggboxplot(three_species_comparison,
+      x = colnames(three_species_comparison[j]), y = colnames(three_species_comparison[i]),
+      color = colnames(three_species_comparison[j]),
+      legend = "none",
+      palette = "npg",
+      add = "jitter"
+    )
+    print(
+      p + stat_compare_means(aes(label = paste0(..method.., ", p-value = ", ..p.format.., " (", ifelse(..p.adj.. > 0.05, "not significant", ..p.signif..), ")")),
+        method = method1, label.y = max(three_species_comparison[, i], na.rm = TRUE)
+      )
+      + stat_compare_means(comparisons = comparisons, method = method2, label = "p.format") 
+    )
+  }
+}
+```
+ 
+ Antoine's snazzy visual allows us to see the individual t-test comparisons (the comparisons between Adelie and Chinstrap species match our previous results), and the ANOVA results.  The ANOVA results indicate that in a comparison of all 3 species of male penguins, the species are significantly different from each other on all measures (but individual one-to-one t-test comparisons are not always significant). 
+ 
+ 
+```{r}
+diamonds
+```
+ 
+ The Mann Whitney U Test (aka Wilcoxon Rank Sum Test)
+ 
+ Let's say we want to know if the price of Very Good and Premium diamonds differs significantly.
+ 
+ Price data isn't normally distributed:
+ 
+```{r}
+diamond_comparison <- diamonds %>% filter(cut=="Very Good" | cut=="Premium")
+very_good <- diamonds %>% filter(cut=="Very Good")
+premium <- diamonds %>% filter(cut=="Premium")
+
+hist(very_good$price)
+hist(premium$price)
+
+```
+ 
+ In this case, we would NOT use a t-test.  (Or if we had 3 prices to compare, we would not use ANOVA.)  Instead we need a non-parametric test - the Mann Whitney U Test.
+ 
+ (If we weren't sure of the distribution, we could always check normality using the Anderson-Darling or Shapiro-Wilk test, then perform either a parametric (T-Test) or non-parametric (Mann Whitney U Test) test, accordingly.)
+ 
+When we use the Mann Whitney U Test, we are testing to see if mean ranks differ between the groups.  Since mean ranks approximate the median, some analysts will say the test looks for median differences. 
+
+Before performing the test, we can again look at boxplots, but this time we need to focus in on the location of the medians (50%), not the means. 
+ 
+```{r}
+#Produce Boxplots and visually check for outliers
+ggplot(diamond_comparison, aes(x = cut, y = price, fill = cut)) +
+  stat_boxplot(geom ="errorbar", width = 0.5) +
+  geom_boxplot(fill = "light blue") + 
+  stat_summary(fun=mean, geom="point", shape=10, size=3.5, color="black") + 
+  ggtitle("Boxplot of Very Good and Premium Cuts") + 
+  theme_bw() + theme(legend.position="none")
+
+```
+ 
+ The circle with the cross in the middle is the mean, but the dark gray bar is the median.
+ Notice the heavy tails of outliers!
+ 
+```{r}
+#Perform the Mann-Whitney U test - for this test, 'paired' should always be FALSE!
+m1<-wilcox.test(price ~ cut, data=diamond_comparison, na.rm=TRUE, paired=FALSE, exact=FALSE, conf.int=TRUE)
+print(m1)
+ 
+#Hodges Lehmann Estimator
+print("Hodges Lehmann Estimator:")
+print(m1$estimate)
+
+```
+ The Hodges Lehman Estimator value, -263, indicates that we can expect a median decrease of \$263 in price when a 'very good' diamond is selected, rather than a 'premium' cut. We are 95% certain that the median difference between a 'very good' and a 'premium' cut across the diamond population will be between \$307 and \$220. Thus, the premium cut diamonds are significantly more expensive overall than the very good cut.
+
+Just as the Mann Whitney U Test is an alternative to the t-test, the Kruskal-Wallis test is a non-parametric alternative to the ANOVA.
+
+Just as before, we can now compare across three groups!
+
+```{r}
+
+kw_comparison <- diamonds %>% filter(cut=="Good" | cut=="Very Good" | cut=="Premium")
+kw_comparison$cut <- factor(kw_comparison$cut)
+good <- diamonds %>% filter(cut=="Good")
+very_good <- diamonds %>% filter(cut=="Very Good")
+premium <- diamonds %>% filter(cut=="Premium")
+
+hist(good$price)
+hist(very_good$price)
+hist(premium$price)
+
+```
+
+```{r}
+#Produce Boxplots and visually check for outliers
+ggplot(kw_comparison, aes(x = cut, y = price, fill = cut)) +
+  stat_boxplot(geom ="errorbar", width = 0.5) +
+  geom_boxplot(fill = "light blue") + 
+  stat_summary(fun=mean, geom="point", shape=10, size=3.5, color="black") + 
+  ggtitle("Boxplot of Good, Very Good and Premium Cuts") + 
+  theme_bw() + theme(legend.position="none")
+
+```
+
+```{r}
+# install.packages("FSA")
+library(FSA)
+
+#Perform the Kruskal-Wallis test
+m2<-kruskal.test(price ~ cut, data=kw_comparison)
+print(m2)
+ 
+#Dunn's Kruskal-Wallis post-hoc test tells *how different* the groups are
+posthoc <-dunnTest(price ~ cut, data=kw_comparison, method="holm")
+print(posthoc)
+
+```
+ 
+ The Wilcoxon Signed-Rank Test is the non-parametric alternative to the paired t-test.
+ 
+ It compares data with the same origin at two different points in time, to see if there is a significant difference between them.  The data must be continuous, but need not be normally distributed.
+ 
+ For this example, we'll look at barley yields during two different years.
+ 
+```{r}
+# install.packages("MASS")
+library(MASS)         
+head(immer)
+
+```
+ 
+```{r}
+hist(immer$Y1)
+hist(immer$Y2)
+
+```
+ 
+ While the data from Y2 looks like it might pass a normality test, the data from Y1 likely would not!  So, we need to compare the two years using a non-parametric test.
+ 
+```{r}
+# For a Wilcoxon Signed-Rank Test, we must set the 'paired' argument to TRUE:
+
+wilcox.test(immer$Y1, immer$Y2, paired=TRUE) 
+
+```
+The p-value is 0.005318, and is less than the .05 significance level, so we reject the null hypothesis and are 95% confident that the two barley yields are different from one another.
+
+
+The Chi-Square Test of Independence
+Compares two categorical variables for independence or dependence based on frequency counts
+For this, we'll use a modified version of the penguins data set
+
+```{r}
+penguins_cat <- penguins %>%
+                  mutate("flipper_size" = ifelse(flipper_length_mm > 200, "big", "small"))
+
+penguins_cat$flipper_size <- factor(penguins_cat$flipper_size)
+
+```
+
+So, is knowing the species of a penguin likely to tell us anything about their flipper size (small vs. big)?  Let's conduct the Chi-Square Test of Independence, and find out!
+
+Before we conduct the test, let's use knitr::kable() to draw a nice contingency table.
+
+```{r}
+# install.packages("knitr")
+library(knitr)
+
+c_table <- table(penguins_cat$species, penguins_cat$flipper_size)
+knitr::kable(c_table, caption = "Penguins - Species v. Flipper Size", align = "lr", format = "html")
+
+```
+
+Just looking at the table, it appears very likely that species and flipper size will be related - even for the Chinstrap species, which has members with varying flipper sizes.
+
+This same data can also be visualized effetively using a bar plot:
+
+```{r}
+
+ggplot(penguins_cat) +
+  aes(x = species, fill = flipper_size) +
+  geom_bar()
+
+```
+
+Or, in terms of proportions:
+
+```{r}
+
+ggplot(penguins_cat) +
+  aes(x = species, fill = flipper_size) +
+  geom_bar(position = "fill")
+
+```
+
+So, let's conduct the test and compare the true frequencies (in the table above) with the expected frequencies under the NULL hypothesis!
+
+```{r}
+
+ch.penguins <- chisq.test(table(penguins_cat$species, penguins_cat$flipper_size))
+ch.penguins
+c_table
+ch.penguins$expected
+
+```
+ 
+ The expected values are very different from the true frequencies, and the p-value is highly significant.  The Chi-Square (X-squared) statistic is 260.89, representing the over-all differences between all the subgroups.  But just knowing the statistic isn't enough - we have to know if it is above or below a critical value, specific to the significance level (alpha, usually 0.05) and the degrees of freedom (in this case, 2).  
+ 
+ We can use the qchisq function to get this value.
+ 
+```{r}
+qchisq(0.05, 2, lower.tail=TRUE)
+
+```
+ 
+ Our value for the Chi-Square statistic is far higher than the critical value!  The relationship between flipper-size and penguin species is confirmed.
+ 
+ What if our data set were so small that the expected frequencies table could have a cell value less than 5? In that case, we would need Fisher's Exact Test.
+ 
+ For this, I'm going to make up some data about students at ESFCOM who had a clinical activity on two different campuses and were asked to rate it on a Likert scale from Poor to Very Good.
+ 
+```{r}
+# Question Responses: "Rate the Overall Value of the Clinical Activity at Your Campus"
+
+campus <- c("Everett", "Everett", "Everett", "Everett", "Everett", 
+            "Everett", "Everett", "Everett", "Everett", "Everett", 
+            "Vancouver", "Vancouver", "Vancouver", "Vancouver", "Vancouver", 
+            "Vancouver", "Vancouver", "Vancouver", "Vancouver",  "Vancouver", 
+            "Vancouver", "Vancouver")
+
+values <- c("Good", "Good", "Neutral", "Very Good", "Fair",
+            "Neutral", "Good", "Good", "Very Good", "Good",
+            "Neutral", "Neutral", "Neutral", "Neutral", "Good",
+            "Good", "Very Good", "Fair", "Neutral", "Poor",
+            "Neutral", "Good")
+
+responses <- data.frame(campus, values)
+
+responses$campus <- factor(responses$campus)
+responses$values <- factor(responses$values, levels = c("Poor", "Fair", "Neutral", "Good", "Very Good"))
+
+table(responses$campus, responses$values)
+
+```
+ 
+ With this small number of responses per category, we'll need the Fisher's Test to discover if these two sets of responses are significantly different!
+ 
+ What are the expected values?
+ 
+```{r}
+chisq.test(table(responses$campus, responses$values))$expected
+
+```
+ 
+ Many values are below 5, but only one of these would need to be < 5 to make Fisher's Test the appropriate choice over Chi-Square.
+ 
+ Small data like this can be compared using a Mosaic plot:
+ 
+```{r}
+
+mosaicplot(responses,
+  main = "Mosaic plot",
+  color = TRUE
+)
+
+```
+ Ok, let's do Fisher's Test to see if the responses are significantly different between the two campuses!
+ 
+```{r}
+
+responses.test <- fisher.test(table(responses$campus, responses$values))
+
+responses.test
+responses.test$p.value
+
+```
+ 
+ Nope! It was hard to tell based on just a few counts, but the ratings from the two campuses are NOT statistically significantly different from each other.
+ 
+ 
+ The Cochran-Mantel-Haenszel (CMH) Test
+ An extension of Chi-Square that examines the independence of two variables when they are stratified by a third variable.
+ 
+```{r}
+# install.packages("vcd")
+library(vcd)
+
+Arthritis
+
+```
+ 
+ First, we'll look at the results of a Chi-Square Test for Treatment Groups:
+ 
+```{r}
+
+table(Arthritis$Treatment, Arthritis$Improved)
+arth.chi <- chisq.test(table(Arthritis$Treatment, Arthritis$Improved))
+arth.chi$expected
+arth.chi
+
+```
+ What's the Critical Value?
+ 
+```{r}
+qchisq(0.05, 2, lower.tail=TRUE)
+```
+The Critical Value is Exceeded by X-squared (13.055), and the p-value is less than 0.05.
+So based on Chi-Square test there's an overall sigificant difference between the treatment and placebo groups!
+
+However, is there still significance if we divide the sample between males and females? 
+How much of a difference in treatment effect is there then?
+
+Let's use CMH to find out. 
+
+```{r}
+
+ggplot(Arthritis) +
+  aes(x = Treatment, fill = Improved) +
+  geom_bar(position = "fill") + 
+  facet_wrap(~Sex)
+
+```
+
+ Wow!  Looks like your biological sex might matter as to the effectiveness of this treatment.
+ 
+ So let's test the hypothesis that Treatment and Improved variables are independent within each level Sex.  Note: CMH assumes there is no three-way interaction between Treatment, Improvement and Sex.
+ 
+ 
+```{r}
+# install.packages("rcompanion")
+library(rcompanion)
+
+arth_table <- table(Arthritis$Treatment,Arthritis$Improved,Arthritis$Sex)
+arth_table
+
+arth.cmh <- mantelhaen.test(Arthritis$Treatment,Arthritis$Improved,Arthritis$Sex)
+arth.cmh
+
+woolf_test(arth_table)
+
+# post-Hoc
+groupwiseCMH(arth_table,
+             group   = 3,
+             fisher  = TRUE,
+             gtest   = FALSE,
+             chisq   = FALSE,
+             method  = "fdr",
+             correct = "none",
+             digits  = 3)
+
+
+```
+ What does this mean?
+ 
+ The Woolf-test indicates the two data sets are comparable.
+ The CMH result indicates that there is a significant difference in the effect of treatment when data are stratified by sex, and the post-Hoc test uses Fisher's Exact Test to demonstrate that p-values are significant for relationship between given and expected counts of treated x improved for females but not for males.  Referring back to the bar-plot, this is evident!
+ 
+ 

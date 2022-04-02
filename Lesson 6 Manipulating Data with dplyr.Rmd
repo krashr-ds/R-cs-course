@@ -233,7 +233,7 @@ library(nycflights13)
 # flights can join to airports on origin or dest(ination)
 # flights can join to weather on origin and year, month, day and hour
 
-# Abbbreviating the flights table
+# Abbreviating the flights table
 flights_sm <- flights %>%
                 select(year:day, hour, origin, dest, tailnum, carrier)
 
